@@ -111,7 +111,8 @@ subroutines
 Full Instruction List
 ---------------------
 
-| OP | Long Op | details |
+|OP  |Long Op  |details  |
+|----|---------|---------|
 | `?` |  println |  |
 | `!` |  print |  |
 | `~` |  peekA |  |
