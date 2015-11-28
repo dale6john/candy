@@ -6,10 +6,12 @@ use Getopt::Long;
 my $verbose = 0;
 my $input = "";
 my $quiet = 0;
+my $debug = 0;
 my $program = "";
 my $programFile = "";
 
 GetOptions("verbose|v" => \$verbose,
+           "debug|d" => \$debug,
            "quiet|q" => \$quiet,
            "file|f=s" => \$programFile,
            "execute|e=s" => \$program,
@@ -217,6 +219,9 @@ if ($programFile) {
       $program .= $c;
     }
   }
+  if ($verbose) {
+    print "$program\n";
+  }
 }
 
 @prog = split(//, $program);
@@ -232,7 +237,7 @@ while (1) {
     }
     last;
   }
-  if ($verbose) {
+  if ($debug) {
     printf "pc: %d [%s]  sp: %d  A: %f  X: %f  Y: %f  Z: %f  ss:%d %d %d\n",
       $pc, $c, $sp, $A, $X, $Y, $Z, 
       (scalar @{$st->[0]}),
@@ -249,192 +254,4 @@ while (1) {
   }
   $pc += 1 + $ops;
   next;
-}
-
-__END__
-  if (isOp($c, "peekA")) {
-    $instructions->{$c}->[2]();
-    #$A = pop1();
-    #push1($A);
-  } elsif (isOp($c, "popA")) {
-    $A = pop1();
-  } elsif ($c eq "A") {
-    push1($A);
-  } elsif ($c eq "X") {
-    push1($X);
-  } elsif ($c eq "Y") {
-    push1($Y);
-  } elsif ($c eq "Z") {
-    push1($Z);
-  } elsif ($c ge "0" && $c le "9") {
-    push1($c + 0);
-  } elsif ($c eq "#") {
-    my $v = 0;
-    my $op = $prog[$pc + ++$ops];
-    while ($op ge "0" && $op le "9") {
-      $v = $v * 10 + $op;
-      $op = $prog[$pc + ++$ops];
-    }
-    --$ops;
-    push1($v);
-  } elsif ($c eq "x") {
-    $X = $A;
-  } elsif ($c eq "y") {
-    $Y = $A;
-  } elsif ($c eq "z") {
-    $Z = $A;
-  } elsif ($c eq "i") {
-    $Z++;
-  } elsif ($c eq "d") {
-    $Z--;
-  } elsif ($c eq "p") {
-    my $tmp = pop1();
-    $Z += $tmp;
-  } elsif ($c eq "D") {
-    my $tmp = pop1();
-    push1($tmp);
-    push1($tmp);
-  } elsif ($c eq "n") {
-    my $tmp = pop1();
-    push1(-$tmp);
-  } elsif ($c eq "r") {
-    my $tmp = pop1();
-    push1(sqrt($tmp));
-  } elsif ($c eq "s") {
-    my $tmp = pop1();
-    push1($tmp * $tmp);
-  } elsif ($c eq "L") {
-    my $tmp = pop1();
-    push1(POSIX::floor($tmp));
-  } elsif ($c eq "e") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    push1(($tmp == $tmp2) ? 1 : 0);
-  } elsif ($c eq "+") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    push1($tmp + $tmp2);
-  } elsif ($c eq "-") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    push1($tmp - $tmp2);
-  } elsif ($c eq "*") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    push1($tmp * $tmp2);
-  } elsif ($c eq "/") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    push1($tmp / $tmp2);
-  } elsif ($c eq "%") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    push1($tmp % $tmp2);
-  } elsif ($c eq "S") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    push1($tmp2);
-    push1($tmp);
-  } elsif ($c eq "O") {
-    my $tmp2 = pop1();
-    my $tmp = pop1();
-    #print "$tmp .. $tmp2\n";
-    for (reverse($tmp .. $tmp2)) {
-      push1($_);
-    }
-  } elsif ($c eq "_") {
-    my $tmp = pop1();
-    for (reverse(0 .. $tmp - 1)) {
-      push1($_);
-    }
-  } elsif ($c eq "R") {
-    my $tmp = pop1();
-    for (reverse(1 .. $tmp)) {
-      push1($_);
-    }
-  } elsif ($c eq "V") {
-    # sum stack
-    my $tmp = 0;
-    for (@{$st->[$sp]}) {
-      $tmp += $_;
-    }
-    $st->[$sp] = [ $tmp ];
-  } elsif ($c eq "W") {
-    # product stack
-    my $tmp = 1;
-    for (@{$st->[$sp]}) {
-      $tmp *= $_;
-    }
-    $st->[$sp] = [ $tmp ];
-  } elsif ($c eq "C") {
-    # cartesian product
-    my $op = $prog[$pc + ++$ops];
-    my $sp2 = ord($op) - ord("a");
-    my @newlist = ();
-    for my $a (@{$st->[$sp]}) {
-      for my $b (@{$st->[$sp2]}) {
-        push @newlist, $a;
-        push @newlist, $b;
-      }
-    }
-    $st->[$sp2] = [];
-    $st->[$sp] = \@newlist;
-  } elsif ($c eq "a" || $c eq "b" || $c eq "c") {
-    $sp = ord($c) - ord("a");
-  } elsif ($c eq "?") {
-    my $tmp = pop1();
-    print "$tmp\n";
-  } elsif ($c eq "!") {
-    my $tmp = pop1();
-    print "...$tmp\t";
-  } elsif ($c eq "{") {
-    my $tmp = pop1();
-    if (!$tmp) {
-      # when false we need to scan to either
-      # the next | or close curly, but honor
-      # nested ifs
-      my $nesting = 0;
-      while ($nesting >= 0) {
-        my $op = $prog[$pc + ++$ops];
-        $nesting++ if ($op eq "{");
-        $nesting-- if ($op eq "}");
-        if ($op eq "|" && $nesting == 0) {
-          last;
-        }
-      }
-    }
-  } elsif ($c eq "|") {
-    # we've hit an else, scan to the next
-    # unmatched close curly
-    my $nesting = 0;
-    while ($nesting >= 0) {
-      my $op = $prog[$pc + ++$ops];
-      $nesting++ if ($op eq "{");
-      $nesting-- if ($op eq "}");
-    }
-  } elsif ($c eq "}") {
-    #
-  } elsif ($c eq "(") {
-    push @$loops, [ $pc, $sp ];
-  } elsif ($c eq ")") {
-    my $lp = pop @$loops;
-    my $this_pc = $lp->[0];
-    my $this_sp = $lp->[1];
-    if (scalar @{$st->[$this_sp]}) {
-      $pc = $this_pc;
-      $sp = $this_sp;
-      push @$loops, $lp;
-    } else {
-      $sp = $this_sp;
-    }
-  } elsif ($c eq " ") {
-    # no-op
-  } elsif ($c eq "\t") {
-    # no-op
-  } elsif ($c eq "\n") {
-    # no-op
-  } else {
-    die "unknown opcode '$c'\n";
-  }
-  $pc += $ops + 1;
 }

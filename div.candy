@@ -1,4 +1,4 @@
-#!/Users/dajohnso/bin/candy
+#!/usr/bin/perl /usr/local/bin/candy
 # ~xR(XW%{i})Z
 
 # program to solve "count the divisors of a number"
@@ -7,6 +7,7 @@
 # the value to solve must be pushed on the stack
 # this is done during execution with the -i parameter
 # ./candy -i 12 div.candy
+# ./div.candy -i 12      # if the candy symlink is set up
 
 # the first remaining thing on the current stack is 
 # popped at the end and displayed as output
