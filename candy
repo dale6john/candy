@@ -59,6 +59,7 @@ my $st = [ [], [], [] ];
 my @prog = ();
 
 sub pop1 {
+  $st->[$sp] ||= [];
   if (scalar @{$st->[$sp]}) {
     return pop @{$st->[$sp]};
   }
@@ -167,7 +168,10 @@ my $operations = [
     }
     $st->[$sp] = [$t];
   }],
-  [ "stackSz", "&", sub { $st->[$sp] = [ scalar @{$st->[$sp]} ]}],
+  [ "stackSz", "&", sub {
+    $st->[$sp] ||= [];
+    $st->[$sp] = [ scalar @{$st->[$sp]} ]
+  }],
   [ "cart",   "C", sub {
     # cartesian product
     #my $op = $prog[$pc + ++$ops];
