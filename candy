@@ -1,0 +1,410 @@
+#!/usr/bin/perl -w
+use strict;
+use POSIX qw/floor/;
+
+my $verbose = 0;
+my $input = "";
+my $program = shift or die;
+if ($program eq "-v") {
+  $verbose = 1;
+  $program = shift or die;
+}
+if ($program =~ /-i(\S+)/) {
+  $input = $1;
+  $program = shift or die;
+}
+
+my $pc = 0;
+my $ops = 0;
+my @prog = split(//, $program);
+printf STDERR "program length: %d\n", scalar @prog;
+my $loops = [];
+my $ifs = [];
+
+my ($A, $X, $Y, $Z) = (0,0,0,0);
+my $sp = 0;
+my $st = [ [], [], [] ];
+
+sub pop1 {
+  if (scalar @{$st->[$sp]}) {
+    return pop @{$st->[$sp]};
+  }
+  my $c = $prog[$pc];
+  die "stack underflow at $pc '$c' (stack $sp)\n";
+}
+sub push1 {
+  my $arg = shift;
+  push @{$st->[$sp]}, $arg;
+}
+
+if ($input ne "") {
+  for (split(/,/, $input)) {
+    push1($_);
+  }
+}
+
+my $operations = [
+  [ "println", "?", sub { print pop1(); print "\n" }],
+  [ "print",  "!", sub { printf "...%s\t", pop1() }],
+  [ "peekA", "~", sub { $A=pop1(); push1($A) }],
+  [ "popA",  "=", sub { $A=pop1() } ],
+  [ "pushA", "A", sub { push1($A) } ],
+  [ "pushX", "X", sub { push1($X) } ],
+  [ "pushY", "Y", sub { push1($Y) } ],
+  [ "pushZ", "Z", sub { push1($Z) } ],
+  [ "digit0", "0", sub { push1(0) } ],
+  [ "digit1", "1", sub { push1(1) } ],
+  [ "digit2", "2", sub { push1(2) } ],
+  [ "digit3", "3", sub { push1(3) } ],
+  [ "digit4", "4", sub { push1(4) } ],
+  [ "digit5", "5", sub { push1(5) } ],
+  [ "digit6", "6", sub { push1(6) } ],
+  [ "digit7", "7", sub { push1(7) } ],
+  [ "digit8", "8", sub { push1(8) } ],
+  [ "digit9", "9", sub { push1(9) } ],
+  [ "number", "#", sub {
+    my $v = 0;
+    my $op = $prog[$pc + ++$ops];
+    while ($op ge "0" && $op le "9") {
+      $v = $v * 10 + $op;
+      $op = $prog[$pc + ++$ops];
+    }
+    --$ops;
+    push1($v);
+  }],
+  [ "XGetsA", "x", sub { $X=$A } ],
+  [ "YGetsA", "y", sub { $Y=$A } ],
+  [ "ZGetsA", "z", sub { $Z=$A } ],
+  [ "incrZ",  "i", sub { $Z++ } ],
+  [ "decrZ",  "d", sub { $Z-- } ],
+  [ "popAddZ", "p", sub { $Z+=pop1() }],
+  [ "dupl",   "D", sub { my $t=pop1(); push1($t); push1($t) }],
+  [ "negate", "n", sub { push1(-pop1()) }],
+  [ "root",   "r", sub { push1(sqrt(pop1())) }],
+  [ "sqr",    "s", sub { my $t=pop1(); push1($t*$t) }],
+  [ "floor",  "L", sub { push1(POSIX::floor(pop1())) }],
+  [ "equal",  "e", sub { push1((pop1()==pop1())?1:0) }],
+  [ "add",  "+", sub { push1(pop1()+pop1()) }],
+  [ "sub",  "-", sub { push1(-pop1()+pop1()) }],
+  [ "mult",  "*", sub { push1(pop1()*pop1()) }],
+  [ "div",  "/", sub { push1(1/pop1()*pop1()) }],
+  [ "mod",  "%", sub { my $t=pop1(); push1(pop1() % $t) }],
+  [ "swap",  "W", sub { my $t=pop1(); my $t2=pop1(); push1($t); push1($t2) }],
+  [ "rangeP",  "O", sub {
+    my $t2=pop1();
+    my $t1=pop1();
+    for (reverse($t1 .. $t2)) {
+      push1($_);
+    }
+  }],
+  [ "range0",  "_", sub { for (reverse(0..pop1()-1)) { push1($_) }}],
+  [ "range1",  "R", sub { for (reverse(1..pop1())) { push1($_) }}],
+  [ "sum",    "S", sub { 
+    my $t=0;
+    for (@{$st->[$sp]}) {
+      $t+=$_;
+    }
+    $st->[$sp] = [$t];
+  }],
+  [ "prod",   "P", sub {
+    my $t=1;
+    for (@{$st->[$sp]}) {
+      $t*=$_;
+    }
+    $st->[$sp] = [$t];
+  }],
+  [ "stackSz", "&", sub { $st->[$sp] = [ scalar @{$st->[$sp]} ]}],
+  [ "cart",   "C", sub {
+    # cartesian product
+    my $op = $prog[$pc + ++$ops];
+    my $sp2 = ord($op) - ord("a");
+    my @newlist = ();
+    for my $a (@{$st->[$sp]}) {
+      for my $b (@{$st->[$sp2]}) {
+        push @newlist, $a;
+        push @newlist, $b;
+      }
+    }
+    $st->[$sp2] = [];
+    $st->[$sp] = \@newlist;
+  }],
+  [ "setStkA", "a", sub { $sp=0 }],
+  [ "setStkB", "b", sub { $sp=1 }],
+  [ "setStkC", "c", sub { $sp=2 }],
+  [ "if",     "{", sub {
+    my $tmp = pop1();
+    if (!$tmp) {
+      # when false we need to scan to either
+      # the next | or close curly, but honor
+      # nested ifs
+      my $nesting = 0;
+      while ($nesting >= 0) {
+        my $op = $prog[$pc + ++$ops];
+        $nesting++ if ($op eq "{");
+        $nesting-- if ($op eq "}");
+        if ($op eq "|" && $nesting == 0) {
+          last;
+        }
+      }
+    }
+  }],
+  [ "else",   "|", sub {
+    # we've hit an else, scan to the next
+    # unmatched close curly
+    my $nesting = 0;
+    while ($nesting >= 0) {
+      my $op = $prog[$pc + ++$ops];
+      $nesting++ if ($op eq "{");
+      $nesting-- if ($op eq "}");
+    }
+  }],
+  [ "endif",  "}", sub {} ],
+  [ "while",  "(", sub { push @$loops, [ $pc, $sp ] }],
+  [ "endwhile", ")", sub {
+    my $lp = pop @$loops;
+    my $this_pc = $lp->[0];
+    my $this_sp = $lp->[1];
+    if (scalar @{$st->[$this_sp]}) {
+      $pc = $this_pc;
+      $sp = $this_sp;
+      push @$loops, $lp;
+    } else {
+      $sp = $this_sp;
+    }
+  }],
+  [ "noOp",   " ", sub {} ],
+];
+
+if ($program eq "--operations") {
+  for (@$operations) {
+    print $_->[1] . "\t" . $_->[0] . "\n";
+  }
+  exit(0);
+}
+
+my $instructions = {};
+for (@$operations) {
+  $instructions->{$_->[1]} = $_;
+}
+sub isOp {
+  my $input = shift;
+  my $check = shift;
+  $instructions->{$input}->[0] eq $check;
+}
+
+while (1) {
+  my $c = $prog[$pc];
+  $ops = 0;
+  if ($pc >= scalar @prog) {
+    if (scalar @{$st->[$sp]} == 1) {
+      print pop1();
+      print "\n";
+    }
+    last;
+  }
+  if ($verbose) {
+    printf "pc: %d [%s]  sp: %d  A: %f  X: %f  Y: %f  Z: %f  ss:%d %d %d\n",
+      $pc, $c, $sp, $A, $X, $Y, $Z, 
+      (scalar @{$st->[0]}),
+      (scalar @{$st->[1]}),
+      (scalar @{$st->[2]})
+      ;
+  }
+
+  eval {
+     $instructions->{$c}->[2]();
+  };
+  if ($@) {
+     die "at '$c' $@ $!\n";
+  }
+  $pc += 1 + $ops;
+  next;
+}
+
+__END__
+  if (isOp($c, "peekA")) {
+    $instructions->{$c}->[2]();
+    #$A = pop1();
+    #push1($A);
+  } elsif (isOp($c, "popA")) {
+    $A = pop1();
+  } elsif ($c eq "A") {
+    push1($A);
+  } elsif ($c eq "X") {
+    push1($X);
+  } elsif ($c eq "Y") {
+    push1($Y);
+  } elsif ($c eq "Z") {
+    push1($Z);
+  } elsif ($c ge "0" && $c le "9") {
+    push1($c + 0);
+  } elsif ($c eq "#") {
+    my $v = 0;
+    my $op = $prog[$pc + ++$ops];
+    while ($op ge "0" && $op le "9") {
+      $v = $v * 10 + $op;
+      $op = $prog[$pc + ++$ops];
+    }
+    --$ops;
+    push1($v);
+  } elsif ($c eq "x") {
+    $X = $A;
+  } elsif ($c eq "y") {
+    $Y = $A;
+  } elsif ($c eq "z") {
+    $Z = $A;
+  } elsif ($c eq "i") {
+    $Z++;
+  } elsif ($c eq "d") {
+    $Z--;
+  } elsif ($c eq "p") {
+    my $tmp = pop1();
+    $Z += $tmp;
+  } elsif ($c eq "D") {
+    my $tmp = pop1();
+    push1($tmp);
+    push1($tmp);
+  } elsif ($c eq "n") {
+    my $tmp = pop1();
+    push1(-$tmp);
+  } elsif ($c eq "r") {
+    my $tmp = pop1();
+    push1(sqrt($tmp));
+  } elsif ($c eq "s") {
+    my $tmp = pop1();
+    push1($tmp * $tmp);
+  } elsif ($c eq "L") {
+    my $tmp = pop1();
+    push1(POSIX::floor($tmp));
+  } elsif ($c eq "e") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    push1(($tmp == $tmp2) ? 1 : 0);
+  } elsif ($c eq "+") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    push1($tmp + $tmp2);
+  } elsif ($c eq "-") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    push1($tmp - $tmp2);
+  } elsif ($c eq "*") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    push1($tmp * $tmp2);
+  } elsif ($c eq "/") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    push1($tmp / $tmp2);
+  } elsif ($c eq "%") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    push1($tmp % $tmp2);
+  } elsif ($c eq "S") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    push1($tmp2);
+    push1($tmp);
+  } elsif ($c eq "O") {
+    my $tmp2 = pop1();
+    my $tmp = pop1();
+    #print "$tmp .. $tmp2\n";
+    for (reverse($tmp .. $tmp2)) {
+      push1($_);
+    }
+  } elsif ($c eq "_") {
+    my $tmp = pop1();
+    for (reverse(0 .. $tmp - 1)) {
+      push1($_);
+    }
+  } elsif ($c eq "R") {
+    my $tmp = pop1();
+    for (reverse(1 .. $tmp)) {
+      push1($_);
+    }
+  } elsif ($c eq "V") {
+    # sum stack
+    my $tmp = 0;
+    for (@{$st->[$sp]}) {
+      $tmp += $_;
+    }
+    $st->[$sp] = [ $tmp ];
+  } elsif ($c eq "W") {
+    # product stack
+    my $tmp = 1;
+    for (@{$st->[$sp]}) {
+      $tmp *= $_;
+    }
+    $st->[$sp] = [ $tmp ];
+  } elsif ($c eq "C") {
+    # cartesian product
+    my $op = $prog[$pc + ++$ops];
+    my $sp2 = ord($op) - ord("a");
+    my @newlist = ();
+    for my $a (@{$st->[$sp]}) {
+      for my $b (@{$st->[$sp2]}) {
+        push @newlist, $a;
+        push @newlist, $b;
+      }
+    }
+    $st->[$sp2] = [];
+    $st->[$sp] = \@newlist;
+  } elsif ($c eq "a" || $c eq "b" || $c eq "c") {
+    $sp = ord($c) - ord("a");
+  } elsif ($c eq "?") {
+    my $tmp = pop1();
+    print "$tmp\n";
+  } elsif ($c eq "!") {
+    my $tmp = pop1();
+    print "...$tmp\t";
+  } elsif ($c eq "{") {
+    my $tmp = pop1();
+    if (!$tmp) {
+      # when false we need to scan to either
+      # the next | or close curly, but honor
+      # nested ifs
+      my $nesting = 0;
+      while ($nesting >= 0) {
+        my $op = $prog[$pc + ++$ops];
+        $nesting++ if ($op eq "{");
+        $nesting-- if ($op eq "}");
+        if ($op eq "|" && $nesting == 0) {
+          last;
+        }
+      }
+    }
+  } elsif ($c eq "|") {
+    # we've hit an else, scan to the next
+    # unmatched close curly
+    my $nesting = 0;
+    while ($nesting >= 0) {
+      my $op = $prog[$pc + ++$ops];
+      $nesting++ if ($op eq "{");
+      $nesting-- if ($op eq "}");
+    }
+  } elsif ($c eq "}") {
+    #
+  } elsif ($c eq "(") {
+    push @$loops, [ $pc, $sp ];
+  } elsif ($c eq ")") {
+    my $lp = pop @$loops;
+    my $this_pc = $lp->[0];
+    my $this_sp = $lp->[1];
+    if (scalar @{$st->[$this_sp]}) {
+      $pc = $this_pc;
+      $sp = $this_sp;
+      push @$loops, $lp;
+    } else {
+      $sp = $this_sp;
+    }
+  } elsif ($c eq " ") {
+    # no-op
+  } elsif ($c eq "\t") {
+    # no-op
+  } elsif ($c eq "\n") {
+    # no-op
+  } else {
+    die "unknown opcode '$c'\n";
+  }
+  $pc += $ops + 1;
+}
