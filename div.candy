@@ -1,5 +1,6 @@
-#!/usr/bin/perl /usr/local/bin/candy
-# ~xR(XW%{i})Z
+#!/usr/bin/env candy
+# she-bang invokation works if you have candy in your path
+# encodes to: ~xR(XW%{i})Z
 
 # program to solve "count the divisors of a number"
 # http://codegolf.stackexchange.com/questions/64944/count-the-divisors-of-a-number
@@ -12,15 +13,14 @@
 # the first remaining thing on the current stack is 
 # popped at the end and displayed as output
 
-peekA
-XGetsA
-Range1   # random comment
+peekA    # user input
+XGetsA   # stash it into X
+Range1   # generate range 1 .. user input
 while
-  pushX
-  swap
-  mod
-  if
-    incrZ
-  endif
+  pushX  # \ 
+  swap   #  >  user input % stack element
+  mod    # /
+  not    # modulo values > 0 gets 1, else 0
+  popAddZ
 endwhile
 pushZ

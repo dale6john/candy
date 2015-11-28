@@ -16,7 +16,7 @@ Currently Interpreted with perl.  Candidate for translation to C or assembly.
 * `#99?`  prints '99', numbers > 9 require '#' prefix
 * `5R`    creates the range 5,4,3,2,1 onto stack
 * `5_`    creates the range 4,3,2,1,0 onto stack
-* `1n?`   'n' unary negation
+* `1m?`   'm' unary negation
 * `5n5O`  creates the range 5,4,3,2,1,0,-1,-2,-3,-4,-5 on stack
 * `12W!?` 'W' swaps the top two stack elements,  prints 1,2
 * `1D+?`  'D' duplicates top stack element, prints 2
@@ -92,10 +92,20 @@ Advanced
 Examples
 --------
 
+Hello, World:
+```
+candy -e '"hello, world\n"(;)'
+```
+
+looped Hello, World:
+```
+candy -i 5 -e 'R(pb"hello, world\n"(;))'
+```
+
 [Count sum of two squares](http://codegolf.stackexchange.com/questions/64812/count-sums-of-two-squares)
 
-./doStk.pl -i25 '~AnWObAnAOxCa(sWs+Xe{i})Z?'  # (count sums sq)
-./doStk.pl -i0,25 '=x=cAXO(0=z~x!aAnAObAnAOCa(sWs+Xe{i})Z?)'
+./doStk.pl -i25 '~AmWObAmAOxCa(sWs+Xe{i})Z?'  # (count sums sq)
+./doStk.pl -i0,25 '=x=cAXO(0=z~x!aAmAObAmAOCa(sWs+Xe{i})Z?)'
 
 [Count divisors of a number](http://codegolf.stackexchange.com/questions/64944/count-the-divisors-of-a-number)
 
@@ -117,55 +127,54 @@ Full Instruction List
 |OP  |Long Op  |details  |
 |----|---------|---------|
 | `?` |  println |  |
-| `!` |  print |  |
+| `p` |  print |  |
+| `;` |  printChr |  |
 | `~` |  peekA |  |
 | `=` |  popA |  |
 | `A` |  pushA |  |
 | `X` |  pushX |  |
 | `Y` |  pushY |  |
 | `Z` |  pushZ |  |
-| `0` |  digit0 |  |
-| `1` |  digit1 |  |
-| `2` |  digit2 |  |
-| `3` |  digit3 |  |
-| `4` |  digit4 |  |
-| `5` |  digit5 |  |
-| `6` |  digit6 |  |
-| `7` |  digit7 |  |
-| `8` |  digit8 |  |
-| `9` |  digit9 |  |
+| `0..9` |  digit0-9 |  |
 | `#` |  number |  used to generate numbers > 9 |
 | `x` |  XGetsA |  |
 | `y` |  YGetsA |  |
 | `z` |  ZGetsA |  |
 | `i` |  incrZ |  |
 | `d` |  decrZ |  |
-| `p` |  popAddZ |  |
+| `h` |  popAddZ |  |
+| `j` |  jumpSub |  |
+| `.` |  retSub |  |
+| `@1` |  label | |
 | `D` |  dupl |  |
-| `n` |  negate |  |
+| `m` |  negate |  |
 | `r` |  root |  |
 | `s` |  sqr |  |
 | `L` |  floor |  |
+| `!` |  not |  |
 | `e` |  equal |  |
-| `+` |  add |  |
-| `-` |  sub |  |
-| `*` |  mult |  |
-| `/` |  div |  |
-| `%` |  mod |  |
+| `+,-,*,/,%` | add,sub,mult,div,mod |  |
 | `W` |  swap |  |
-| `O` |  rangeP |  |
-| `_` |  range0 |  |
-| `R` |  range1 |  |
+| `O` |  rangeP | range using a pair off the stack |
+| `_` |  range0 | range starting at 0 |
+| `R` |  range1 | range starting at 1 |
 | `S` |  sum |  |
 | `P` |  prod |  |
+| `F` |  find |  search stack, return 0 or 1 (unimplemente) |
 | `&` |  stackSz |  |
-| `C` |  cart |  |
-| `a` |  setStkA |  |
-| `b` |  setStkB |  |
-| `c` |  setStkC |  |
+| `C` |  cart | cartesian product |
+| `I` |  zip |  zip lists (unimplemented) |
+| `a` |  stack1 |  |
+| `b` |  stack2 |  |
+| `c` |  stack3 |  |
+| `K` |  getSP | push current stack frame id onto stack |
+| `k` |  setSP | pull next frame id from stack |
 | `{` |  if |  |
 | `|` |  else |  |
 | `}` |  endif |  |
 | `(` |  while |  |
 | `)` |  endwhile |  |
 | ` ` |    noOp | includes space, tab and linefeed |
+| `fglopqtuvw` | | future |
+| `BDEGHIJMNQRTUV` | | future |
+| `$^[]\:'<>,` | | future |

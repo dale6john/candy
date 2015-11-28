@@ -1,0 +1,38 @@
+# test subroutines
+
+number digit2 digit2 jumpSub
+
+digit9
+range0
+while
+  dupl
+  print
+  digit1
+  jumpSub
+  println
+endwhile
+retSub
+
+# SUB is divisible by 3
+label digit1
+peekA    # user input
+XGetsA   # stash it into X
+digit3
+mod
+not
+retSub
+
+label number digit2 digit2
+noOp
+getSP
+digit3
+setSP
+"hello, world\n"
+while
+  printChr
+  #print
+endwhile
+pushA
+setSP
+
+retSub

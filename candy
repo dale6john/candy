@@ -2,6 +2,7 @@
 use strict;
 use POSIX qw/floor/;
 use Getopt::Long;
+use Data::Dumper qw/Dumper/;
 
 my $verbose = 0;
 my $input = "";
@@ -27,8 +28,12 @@ if (@ARGV) {
 
 my $pc = 0;
 my $ops = 0;
+my $stop = 0;
 my $loops = [];
 my $ifs = [];
+my $labels = {};
+my $labelsAt = {};
+my $subStack = [];
 
 my ($A, $X, $Y, $Z) = (0,0,0,0);
 my $sp = 0;
@@ -47,15 +52,10 @@ sub push1 {
   push @{$st->[$sp]}, $arg;
 }
 
-if ($input ne "") {
-  for (split(/,/, $input)) {
-    push1($_);
-  }
-}
-
 my $operations = [
   [ "println", "?", sub { print pop1(); print "\n" }],
-  [ "print",  "!", sub { printf "...%s\t", pop1() }],
+  [ "print",  "p", sub { printf "...%s\t", pop1() }],
+  [ "printChr", ";", sub { printf "%c", pop1() }],
   [ "peekA", "~", sub { $A=pop1(); push1($A) }],
   [ "popA",  "=", sub { $A=pop1() } ],
   [ "pushA", "A", sub { push1($A) } ],
@@ -82,14 +82,34 @@ my $operations = [
     --$ops;
     push1($v);
   }],
+  [ "quote", '"', sub {
+    my @s = ();
+    while ($prog[$pc + ++$ops] ne q{"}) {
+      if ($prog[$pc + $ops] eq '\\') {
+        $ops++;
+        if ($prog[$pc + $ops] eq "n") {
+          push @s, "\n";
+        } elsif ($prog[$pc + $ops] eq "t") {
+          push @s, "\t";
+        }
+      } else {
+        push @s, $prog[$pc + $ops];
+      }
+    }
+    #push1(0); # null terminator
+    for (reverse(@s)) {
+      push1(ord($_));
+    }
+  }],
   [ "XGetsA", "x", sub { $X=$A } ],
   [ "YGetsA", "y", sub { $Y=$A } ],
   [ "ZGetsA", "z", sub { $Z=$A } ],
   [ "incrZ",  "i", sub { $Z++ } ],
   [ "decrZ",  "d", sub { $Z-- } ],
-  [ "popAddZ", "p", sub { $Z+=pop1() }],
+  [ "popAddZ", "h", sub { $Z+=pop1() }],
   [ "dupl",   "D", sub { my $t=pop1(); push1($t); push1($t) }],
-  [ "negate", "n", sub { push1(-pop1()) }],
+  [ "negate", "m", sub { push1(-pop1()) }],
+  [ "not",    "n", sub { push1(pop1() ? 0 : 1) }],
   [ "root",   "r", sub { push1(sqrt(pop1())) }],
   [ "sqr",    "s", sub { my $t=pop1(); push1($t*$t) }],
   [ "floor",  "L", sub { push1(POSIX::floor(pop1())) }],
@@ -138,9 +158,11 @@ my $operations = [
     $st->[$sp2] = [];
     $st->[$sp] = \@newlist;
   }],
-  [ "setStkA", "a", sub { $sp=0 }],
-  [ "setStkB", "b", sub { $sp=1 }],
-  [ "setStkC", "c", sub { $sp=2 }],
+  [ "stack1", "a", sub { $sp=0 }],
+  [ "stack2", "b", sub { $sp=1 }],
+  [ "stack3", "c", sub { $sp=2 }],
+  [ "getSP", "K", sub { push1($sp); } ],
+  [ "setSP", "k", sub { $sp=pop1(); } ],
   [ "if",     "{", sub {
     my $tmp = pop1();
     if (!$tmp) {
@@ -182,6 +204,25 @@ my $operations = [
       $sp = $this_sp;
     }
   }],
+  [ "label", "@", sub {
+    # need to skip past next number defn
+    $ops = $labelsAt->{$pc} || die;
+  }],
+  [ "jumpSub", "j", sub {
+    push @$subStack, [ $pc, $sp ];
+    my $label = pop1();
+    $pc = $labels->{ $label };
+    die "label [$label] not found" unless defined $pc;
+  }],
+  [ "retSub", ".", sub {
+    my $p = pop @$subStack;
+    if ($p) {
+      $pc = $p->[0];
+      $sp = $p->[1];
+    } else {
+      $stop = 1;
+    }
+  }],
   [ "noOp",   " ", sub {} ],
 ];
 
@@ -204,22 +245,36 @@ sub isOp {
   $instructions->{$input}->[0] eq $check;
 }
 
+# if long form given, condense to short form
 if ($programFile) {
   open(F, "<$programFile");
   while(<F>) {
     #print;
     next if /^\s*#/;
-    s/#.*$//;
-    for my $w (split(/\s+/)) {
-      next if $w =~ /^\s*$/;
-      #print "word: '$w'\n";
-      my $c = $long->{lc($w)}->[1];
-      #print "c: '$c'\n";
-      die "illegal: $w" unless $c;
-      $program .= $c;
+    # quoted strings are required to be on their own line
+    if (/^\s*"([^"]+)"/) {
+      $program .= qq{"$1"};
+    } else {
+      s/#[^"]*$//;
+      for my $w (split(/\s+/)) {
+        next if $w =~ /^\s*$/;
+        #print "word: '$w'\n";
+        my $c = $long->{lc($w)}->[1];
+        #print "c: '$c'\n";
+        die "illegal: '$w'" unless defined $c;
+        $program .= $c;
+      }
     }
   }
   if ($verbose) {
+    for (0..length($program)) {
+      printf "%d", int($_ / 10);
+    }
+    print "\n";
+    for (0..length($program)) {
+      printf "%d", $_ % 10;
+    }
+    print "\n";
     print "$program\n";
   }
 }
@@ -227,11 +282,43 @@ if ($programFile) {
 @prog = split(//, $program);
 printf STDERR "program length: %d\n", scalar @prog unless $quiet;
 
+# scan for labels
+for my $ix (0 .. scalar(@prog) - 1) {
+  my $c = $prog[$ix];
+  if ($c eq "@") {
+    $ops = 0;
+    $pc = $ix + 1;
+    $c = $prog[$pc];
+    eval {
+      $instructions->{$c}->[2]();
+    };
+    if ($@) {
+       die "at '$c' $@ $!\n";
+    }
+    my $num = pop1();
+    my $next = $ops;
+    $labels->{ $num } = $pc + $ops;
+    $labelsAt->{ $ix } = $ops;
+  }
+}
+#print Dumper($labels);
+#print Dumper($labelsAt);
+$pc = 0;
+$sp = 0;
+$st->[$sp] = [];
+
+if ($input ne "") {
+  for (split(/,/, $input)) {
+    push1($_);
+  }
+}
+
 while (1) {
   my $c = $prog[$pc];
   $ops = 0;
-  if ($pc >= scalar @prog) {
+  if ($stop || $pc >= scalar @prog) {
     if (scalar @{$st->[$sp]} == 1) {
+      print ">>>\t";
       print pop1();
       print "\n";
     }
