@@ -85,44 +85,64 @@ A,X,Y,Z are specialized registers
                 frame back to 'a', which was the stack frame
                 at the '('
 
-Advanced
---------
 
+## Running the interpreter
 
-Examples
---------
+```
+candy -e 'inline-short-form-candy' # only short form candy
 
-Hello, World:
+candy -f filename.candy    # only long form candy
+OR
+candy filename.candy       # only long form candy
+
+candy -e 'short-form' -L   # convert to long form
+
+candy -d file.candy      # produce debug output
+
+candy --help             # see all options
+```
+
+## Examples
+
+### Hello, World:
 ```
 candy -e '"hello, world\n"(;)'
+hello, world
 ```
 
 looped Hello, World:
 ```
 candy -i 5 -e 'R(pb"hello, world\n"(;))'
+hello, world
+hello, world
+hello, world
+hello, world
+hello, world
 ```
 
-[Count sum of two squares](http://codegolf.stackexchange.com/questions/64812/count-sums-of-two-squares)
+### [Count sum of two squares](http://codegolf.stackexchange.com/questions/64812/count-sums-of-two-squares)
 
-./doStk.pl -i25 '~AmWObAmAOxCa(sWs+Xe{i})Z?'  # (count sums sq)
-./doStk.pl -i0,25 '=x=cAXO(0=z~x!aAmAObAmAOCa(sWs+Xe{i})Z?)'
+```
+candy -i 5 -e '~TbAT1C(sWs+Aeh)Z'
+candy -i 0,25 -e 'O(0=z~pcA~TbAT2C(sWs+Aeh)Z?)'
+```
 
-[Count divisors of a number](http://codegolf.stackexchange.com/questions/64944/count-the-divisors-of-a-number)
+### [Count divisors of a number](http://codegolf.stackexchange.com/questions/64944/count-the-divisors-of-a-number)
 
-./doStk.pl -i12 '~xR(XW%{i})Z'   # (count divisors)
-./doStk.pl -i12 '~xR(XW/~ALep)Z'
-./doStk.pl -i12 '~xR(XW/~ALep)Z?'
+```
+candy -i 12 -e '~xR(XW%nh)Z'
+```
+see div.candy in this distribution
 
-TODO
-----
+
+## TODO
+
 zip
 search stack
-print stack size
-subroutines
+heap (?)
 
 
-Full Instruction List
----------------------
+## Full Instruction List
 
 |OP  |Long Op  |details  |
 |----|---------|---------|
@@ -153,20 +173,21 @@ Full Instruction List
 | `L` |  floor |  |
 | `!` |  not |  |
 | `e` |  equal |  |
-| `+,-,*,/,%` | add,sub,mult,div,mod |  |
+| `+` `-` ` * ` `/` `%` | add,sub,mult,div,mod |  |
 | `W` |  swap |  |
 | `O` |  rangeP | range using a pair off the stack |
-| `_` |  range0 | range starting at 0 |
+| ` _ ` |  range0 | range starting at 0 |
 | `R` |  range1 | range starting at 1 |
+| `T` |  range2 | two sided range -v to +v |
 | `S` |  sum |  |
 | `P` |  prod |  |
 | `F` |  find |  search stack, return 0 or 1 (unimplemente) |
 | `&` |  stackSz |  |
 | `C` |  cart | cartesian product |
 | `I` |  zip |  zip lists (unimplemented) |
-| `a` |  stack1 |  |
-| `b` |  stack2 |  |
-| `c` |  stack3 |  |
+| `a` |  stack0 |  |
+| `b` |  stack1 |  |
+| `c` |  stack2 |  |
 | `K` |  getSP | push current stack frame id onto stack |
 | `k` |  setSP | pull next frame id from stack |
 | `{` |  if |  |

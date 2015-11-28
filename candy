@@ -8,16 +8,34 @@ my $verbose = 0;
 my $input = "";
 my $quiet = 0;
 my $debug = 0;
+my $help = 0;
+my $showLong = 0;
 my $program = "";
 my $programFile = "";
 
 GetOptions("verbose|v" => \$verbose,
            "debug|d" => \$debug,
            "quiet|q" => \$quiet,
+           "help|?" => \$help,
+           "long|L" => \$showLong,
            "file|f=s" => \$programFile,
            "execute|e=s" => \$program,
            "input|i=s" => \$input)
 or die ("error in arguments");
+
+if ($help) {
+  print "Usage: $0
+   -v --verbose
+   -q --quiet
+   -d --debug
+   -? --help
+   -L --long
+   -f --file <name>
+   -e --execute 'inline-program'
+   -i --input <comma separated numbers>
+   \n";
+  exit(2);
+}
 
 # remaining args to be program
 
@@ -129,6 +147,12 @@ my $operations = [
   }],
   [ "range0",  "_", sub { for (reverse(0..pop1()-1)) { push1($_) }}],
   [ "range1",  "R", sub { for (reverse(1..pop1())) { push1($_) }}],
+  [ "range2",  "T", sub {
+    my $t = pop1();
+    for (reverse(-$t .. $t)) {
+      push1($_)
+    }
+  }],
   [ "sum",    "S", sub { 
     my $t=0;
     for (@{$st->[$sp]}) {
@@ -146,8 +170,9 @@ my $operations = [
   [ "stackSz", "&", sub { $st->[$sp] = [ scalar @{$st->[$sp]} ]}],
   [ "cart",   "C", sub {
     # cartesian product
-    my $op = $prog[$pc + ++$ops];
-    my $sp2 = ord($op) - ord("a");
+    #my $op = $prog[$pc + ++$ops];
+    my $sp2 = pop1();
+    #my $sp2 = ord($op) - ord("a");
     my @newlist = ();
     for my $a (@{$st->[$sp]}) {
       for my $b (@{$st->[$sp2]}) {
@@ -282,6 +307,34 @@ if ($programFile) {
 @prog = split(//, $program);
 printf STDERR "program length: %d\n", scalar @prog unless $quiet;
 
+if ($showLong) {
+  my $indent = 0;
+  my $each = 2;
+  my $ix = 0;
+  while ($ix < length($program)) {
+    my $c = $prog[$ix];
+    $indent -= $each if $c eq ")" || $c eq "}";
+    if ($c eq q{"}) {
+      # get next quote
+      for my $b ($ix + 1 .. length($program) - 1) {
+        if ($prog[$b] eq q{"}) {
+          my $str = substr($program, $ix + 1, $b - $ix - 1);
+          print ((" " x $indent) . qq{"$str"\n});
+          $ix += $b - $ix - 1;
+          last;
+        }
+      }
+    } else {
+      my $o = $instructions->{$c};
+      print ((" " x $indent) . $o->[0] . "\n");
+      print "\n" if ($c eq ".");
+    }
+    $indent += $each if $c eq "(" || $c eq "{";
+    $ix++;
+  }
+  exit(0);
+}
+
 # scan for labels
 for my $ix (0 .. scalar(@prog) - 1) {
   my $c = $prog[$ix];
@@ -307,12 +360,16 @@ $pc = 0;
 $sp = 0;
 $st->[$sp] = [];
 
+# parameters
 if ($input ne "") {
   for (split(/,/, $input)) {
     push1($_);
   }
 }
 
+#
+# execute
+#
 while (1) {
   my $c = $prog[$pc];
   $ops = 0;
