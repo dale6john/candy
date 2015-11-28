@@ -91,9 +91,11 @@ Advanced
 
 Examples
 --------
+[Count sum of two squares](http://codegolf.stackexchange.com/questions/64812/count-sums-of-two-squares)
 ./doStk.pl -i25 '~AnWObAnAOxCa(sWs+Xe{i})Z?'  # (count sums sq)
 ./doStk.pl -i0,25 '=x=cAXO(0=z~x!aAnAObAnAOCa(sWs+Xe{i})Z?)'
 
+[Count divisors of a number](http://codegolf.stackexchange.com/questions/64944/count-the-divisors-of-a-number)
 ./doStk.pl -i12 '~xR(XW%{i})Z'   # (count divisors)
 ./doStk.pl -i12 '~xR(XW/~ALep)Z'
 ./doStk.pl -i12 '~xR(XW/~ALep)Z?'
@@ -109,57 +111,57 @@ subroutines
 Full Instruction List
 ---------------------
 
-?   println
-!   print
-~   peekA
-=   popA
-A   pushA
-X   pushX
-Y   pushY
-Z   pushZ
-0   digit0
-1   digit1
-2   digit2
-3   digit3
-4   digit4
-5   digit5
-6   digit6
-7   digit7
-8   digit8
-9   digit9
-#   number   used to generate numbers > 9
-x   XGetsA
-y   YGetsA
-z   ZGetsA
-i   incrZ
-d   decrZ
-p   popAddZ
-D   dupl
-n   negate
-r   root
-s   sqr
-L   floor
-e   equal
-+   add
--   sub
-*   mult
-/   div
-%   mod
-W   swap
-O   rangeP
-_   range0
-R   range1
-S   sum
-P   prod
-&   stackSz
-C   cart
-a   setStkA
-b   setStkB
-c   setStkC
-{   if
-|   else
-}   endif
-(   while
-)   endwhile
-    noOp
- 
+| OP | Long Op | details |
+| `?` |  println |  |
+| `!` |  print |  |
+| `~` |  peekA |  |
+| `=` |  popA |  |
+| `A` |  pushA |  |
+| `X` |  pushX |  |
+| `Y` |  pushY |  |
+| `Z` |  pushZ |  |
+| `0` |  digit0 |  |
+| `1` |  digit1 |  |
+| `2` |  digit2 |  |
+| `3` |  digit3 |  |
+| `4` |  digit4 |  |
+| `5` |  digit5 |  |
+| `6` |  digit6 |  |
+| `7` |  digit7 |  |
+| `8` |  digit8 |  |
+| `9` |  digit9 |  |
+| `#` |  number |  used to generate numbers > 9 |
+| `x` |  XGetsA |  |
+| `y` |  YGetsA |  |
+| `z` |  ZGetsA |  |
+| `i` |  incrZ |  |
+| `d` |  decrZ |  |
+| `p` |  popAddZ |  |
+| `D` |  dupl |  |
+| `n` |  negate |  |
+| `r` |  root |  |
+| `s` |  sqr |  |
+| `L` |  floor |  |
+| `e` |  equal |  |
+| `+` |  add |  |
+| `-` |  sub |  |
+| `*` |  mult |  |
+| `/` |  div |  |
+| `%` |  mod |  |
+| `W` |  swap |  |
+| `O` |  rangeP |  |
+| `_` |  range0 |  |
+| `R` |  range1 |  |
+| `S` |  sum |  |
+| `P` |  prod |  |
+| `&` |  stackSz |  |
+| `C` |  cart |  |
+| `a` |  setStkA |  |
+| `b` |  setStkB |  |
+| `c` |  setStkC |  |
+| `{` |  if |  |
+| `|` |  else |  |
+| `}` |  endif |  |
+| `(` |  while |  |
+| `)` |  endwhile |  |
+| ` ` |    noOp | includes space, tab and linefeed |
