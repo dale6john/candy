@@ -91,11 +91,14 @@ Advanced
 
 Examples
 --------
+
 [Count sum of two squares](http://codegolf.stackexchange.com/questions/64812/count-sums-of-two-squares)
+
 ./doStk.pl -i25 '~AnWObAnAOxCa(sWs+Xe{i})Z?'  # (count sums sq)
 ./doStk.pl -i0,25 '=x=cAXO(0=z~x!aAnAObAnAOCa(sWs+Xe{i})Z?)'
 
 [Count divisors of a number](http://codegolf.stackexchange.com/questions/64944/count-the-divisors-of-a-number)
+
 ./doStk.pl -i12 '~xR(XW%{i})Z'   # (count divisors)
 ./doStk.pl -i12 '~xR(XW/~ALep)Z'
 ./doStk.pl -i12 '~xR(XW/~ALep)Z?'

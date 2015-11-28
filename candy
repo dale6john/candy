@@ -1,29 +1,37 @@
 #!/usr/bin/perl -w
 use strict;
 use POSIX qw/floor/;
+use Getopt::Long;
 
 my $verbose = 0;
 my $input = "";
-my $program = shift or die;
-if ($program eq "-v") {
-  $verbose = 1;
-  $program = shift or die;
-}
-if ($program =~ /-i(\S+)/) {
-  $input = $1;
-  $program = shift or die;
+my $quiet = 0;
+my $program = "";
+my $programFile = "";
+
+GetOptions("verbose|v" => \$verbose,
+           "quiet|q" => \$quiet,
+           "file|f=s" => \$programFile,
+           "execute|e=s" => \$program,
+           "input|i=s" => \$input)
+or die ("error in arguments");
+
+# remaining args to be program
+
+if (@ARGV) {
+  die if $programFile;
+  $programFile = shift;
 }
 
 my $pc = 0;
 my $ops = 0;
-my @prog = split(//, $program);
-printf STDERR "program length: %d\n", scalar @prog;
 my $loops = [];
 my $ifs = [];
 
 my ($A, $X, $Y, $Z) = (0,0,0,0);
 my $sp = 0;
 my $st = [ [], [], [] ];
+my @prog = ();
 
 sub pop1 {
   if (scalar @{$st->[$sp]}) {
@@ -183,14 +191,36 @@ if ($program eq "--operations") {
 }
 
 my $instructions = {};
+my $long = {};
 for (@$operations) {
   $instructions->{$_->[1]} = $_;
+  $long->{lc($_->[0])} = $_;
 }
 sub isOp {
   my $input = shift;
   my $check = shift;
   $instructions->{$input}->[0] eq $check;
 }
+
+if ($programFile) {
+  open(F, "<$programFile");
+  while(<F>) {
+    #print;
+    next if /^\s*#/;
+    s/#.*$//;
+    for my $w (split(/\s+/)) {
+      next if $w =~ /^\s*$/;
+      #print "word: '$w'\n";
+      my $c = $long->{lc($w)}->[1];
+      #print "c: '$c'\n";
+      die "illegal: $w" unless $c;
+      $program .= $c;
+    }
+  }
+}
+
+@prog = split(//, $program);
+printf STDERR "program length: %d\n", scalar @prog unless $quiet;
 
 while (1) {
   my $c = $prog[$pc];

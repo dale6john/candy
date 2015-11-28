@@ -1,0 +1,25 @@
+#!/Users/dajohnso/bin/candy
+# ~xR(XW%{i})Z
+
+# program to solve "count the divisors of a number"
+# http://codegolf.stackexchange.com/questions/64944/count-the-divisors-of-a-number
+
+# the value to solve must be pushed on the stack
+# this is done during execution with the -i parameter
+# ./candy -i 12 div.candy
+
+# the first remaining thing on the current stack is 
+# popped at the end and displayed as output
+
+peekA
+XGetsA
+Range1   # random comment
+while
+  pushX
+  swap
+  mod
+  if
+    incrZ
+  endif
+endwhile
+pushZ
