@@ -154,6 +154,7 @@ my $operations = [
       push1($_)
     }
   }],
+  [ "order",  "o", sub { $st->[$sp] = [ sort { $b <=> $a } (@{$st->[$sp]}) ]; }],
   [ "sum",    "S", sub { 
     my $t=0;
     for (@{$st->[$sp]}) {
@@ -237,6 +238,7 @@ my $operations = [
     # need to skip past next number defn
     $ops = $labelsAt->{$pc} || die;
   }],
+  [ "goto", "g", sub { $pc = pop1() - 1 }],
   [ "jumpSub", "j", sub {
     push @$subStack, [ $pc, $sp ];
     my $label = pop1();

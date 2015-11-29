@@ -137,9 +137,12 @@ see div.candy in this distribution
 
 ## TODO
 
-zip
-search stack
-heap (?)
+- zip
+- search stack
+- heap (?)
+- queue operations
+- sleep
+- random number
 
 
 ## Full Instruction List
@@ -164,6 +167,7 @@ heap (?)
 | `d` |  decrZ |  |
 | `h` |  popAddZ |  |
 | `j` |  jumpSub |  |
+| `g` |  goto |  |
 | `.` |  retSub |  |
 | `@1` |  label | |
 | `D` |  dupl |  |
@@ -181,6 +185,7 @@ heap (?)
 | `T` |  range2 | two sided range -v to +v |
 | `S` |  sum |  |
 | `P` |  prod |  |
+| `o` |  sort stack | _o_rdering |
 | `F` |  find |  search stack, return 0 or 1 (unimplemente) |
 | `&` |  stackSz |  |
 | `C` |  cart | cartesian product |
@@ -196,6 +201,6 @@ heap (?)
 | `(` |  while |  |
 | `)` |  endwhile |  |
 | ` ` |    noOp | includes space, tab and linefeed |
-| `fglopqtuvw` | | future |
-| `BDEGHIJMNQRTUV` | | future |
+| `flpqtuvw` | | future |
+| `BDEGHIJMNQRUV` | | future |
 | `$^[]\:'<>,` | | future |
