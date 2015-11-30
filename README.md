@@ -146,9 +146,10 @@ see div.candy in this distribution
 - heap (?)
 - queue operations
 - sleep
-- random number
 - smoother stack transitions (ie. nextStack, prevStack)
+- reserved stack for program input
 - dedup (?)
+- counter operations for Y as well
 
 
 ## Full Instruction List

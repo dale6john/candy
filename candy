@@ -353,6 +353,7 @@ if ($showLong) {
           last;
         }
       }
+      $ix++;
     } else {
       my $o = $instructions->{$c};
       print ((" " x $indent) . $o->[0] . "\n");
