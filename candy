@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 use POSIX qw/floor/;
-use Getopt::Long;
+use Getopt::Long qw/:config no_ignore_case/;
 use Data::Dumper qw/Dumper/;
 
 my $verbose = 0;
 my $input = "";
+my $inputString = "";
 my $quiet = 0;
 my $debug = 0;
 my $help = 0;
@@ -20,7 +21,8 @@ GetOptions("verbose|v" => \$verbose,
            "long|L" => \$showLong,
            "file|f=s" => \$programFile,
            "execute|e=s" => \$program,
-           "input|i=s" => \$input)
+           "input|i=s" => \$input,
+           "inputString|I=s" => \$inputString)
 or die ("error in arguments");
 
 if ($help) {
@@ -33,6 +35,7 @@ if ($help) {
    -f --file <name>
    -e --execute 'inline-program'
    -i --input <comma separated numbers>
+   -I --inputString <stuff>
    \n";
   exit(2);
 }
@@ -64,7 +67,8 @@ sub pop1 {
     return pop @{$st->[$sp]};
   }
   my $c = $prog[$pc];
-  die "stack underflow at $pc '$c' (stack $sp)\n";
+  my $cx = join("", map { $_ >= 0 ? $prog[$_] : "" } ($pc - 3 .. $pc + 3));
+  die "stack underflow at $pc '$c' (stack $sp) ==> $cx\n";
 }
 sub push1 {
   my $arg = shift;
@@ -75,6 +79,7 @@ my $operations = [
   [ "println", "?", sub { print pop1(); print "\n" }],
   [ "print",  "p", sub { printf "...%s\t", pop1() }],
   [ "printChr", ";", sub { printf "%c", pop1() }],
+  [ "getc", ":", sub { push1(ord(getc())) }],
   [ "peekA", "~", sub { $A=pop1(); push1($A) }],
   [ "popA",  "=", sub { $A=pop1() } ],
   [ "pushA", "A", sub { push1($A) } ],
@@ -129,10 +134,13 @@ my $operations = [
   [ "dupl",   "D", sub { my $t=pop1(); push1($t); push1($t) }],
   [ "negate", "m", sub { push1(-pop1()) }],
   [ "not",    "n", sub { push1(pop1() ? 0 : 1) }],
+  [ "rand", "H", sub { my $t=pop1(); push1(($t>0) ? int(rand($t)) : rand()) }],
   [ "root",   "r", sub { push1(sqrt(pop1())) }],
   [ "sqr",    "s", sub { my $t=pop1(); push1($t*$t) }],
   [ "floor",  "L", sub { push1(POSIX::floor(pop1())) }],
   [ "equal",  "e", sub { push1((pop1()==pop1())?1:0) }],
+  [ "less",   "<", sub { push1((pop1()>pop1())?1:0) }],
+  [ "greater",">", sub { push1((pop1()<pop1())?1:0) }],
   [ "add",  "+", sub { push1(pop1()+pop1()) }],
   [ "sub",  "-", sub { push1(-pop1()+pop1()) }],
   [ "mult",  "*", sub { push1(pop1()*pop1()) }],
@@ -171,7 +179,7 @@ my $operations = [
   }],
   [ "stackSz", "&", sub {
     $st->[$sp] ||= [];
-    $st->[$sp] = [ scalar @{$st->[$sp]} ]
+    push1(scalar @{$st->[$sp]});
   }],
   [ "cart",   "C", sub {
     # cartesian product
@@ -213,6 +221,7 @@ my $operations = [
   [ "else",   "|", sub {
     # we've hit an else, scan to the next
     # unmatched close curly
+    # FIXME: quoted strings mess this up
     my $nesting = 0;
     while ($nesting >= 0) {
       my $op = $prog[$pc + ++$ops];
@@ -221,7 +230,20 @@ my $operations = [
     }
   }],
   [ "endif",  "}", sub {} ],
-  [ "while",  "(", sub { push @$loops, [ $pc, $sp ] }],
+  [ "while",  "(", sub { 
+    if (@{$st->[$sp]}) {
+      push @$loops, [ $pc, $sp ];
+    } else {
+      # find matching ')' to bypass loop
+      # FIXME: quoted strings mess this up
+      my $nesting = 0;
+      while ($nesting >= 0) {
+        my $op = $prog[$pc + ++$ops];
+        $nesting++ if ($op eq "(");
+        $nesting-- if ($op eq ")");
+      }
+    }
+  }],
   [ "endwhile", ")", sub {
     my $lp = pop @$loops;
     my $this_pc = $lp->[0];
@@ -236,7 +258,8 @@ my $operations = [
   }],
   [ "label", "@", sub {
     # need to skip past next number defn
-    $ops = $labelsAt->{$pc} || die;
+    die "reverse label lookup at $pc failed" if not exists $labelsAt->{$pc};
+    $ops = $labelsAt->{$pc};
   }],
   [ "goto", "g", sub { $pc = pop1() - 1 }],
   [ "jumpSub", "j", sub {
@@ -357,7 +380,7 @@ for my $ix (0 .. scalar(@prog) - 1) {
     my $num = pop1();
     my $next = $ops;
     $labels->{ $num } = $pc + $ops;
-    $labelsAt->{ $ix } = $ops;
+    $labelsAt->{ $ix } = $ops || 1;
   }
 }
 #print Dumper($labels);
@@ -370,6 +393,11 @@ $st->[$sp] = [];
 if ($input ne "") {
   for (split(/,/, $input)) {
     push1($_);
+  }
+}
+if ($inputString ne "") {
+  for (reverse(split//, $inputString)) {
+    push1(ord($_));
   }
 }
 

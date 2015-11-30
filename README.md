@@ -99,6 +99,10 @@ candy -e 'short-form' -L   # convert to long form
 
 candy -d file.candy      # produce debug output
 
+candy -i 1,2,100         # parameters are placed onto the stack before execution
+
+candy -I "text input"    # ordinals are placed onto the stack before execution
+
 candy --help             # see all options
 ```
 
@@ -143,6 +147,8 @@ see div.candy in this distribution
 - queue operations
 - sleep
 - random number
+- smoother stack transitions (ie. nextStack, prevStack)
+- dedup (?)
 
 
 ## Full Instruction List
@@ -152,6 +158,7 @@ see div.candy in this distribution
 | `?` |  println |  |
 | `p` |  print |  |
 | `;` |  printChr |  |
+| `:` |  getc | read a character from STDIN |
 | `~` |  peekA |  |
 | `=` |  popA |  |
 | `A` |  pushA |  |
@@ -172,11 +179,14 @@ see div.candy in this distribution
 | `@1` |  label | |
 | `D` |  dupl |  |
 | `m` |  negate |  |
+| `H` |  random | `H`eisen-value |
 | `r` |  root |  |
 | `s` |  sqr |  |
 | `L` |  floor |  |
 | `!` |  not |  |
 | `e` |  equal |  |
+| `<` |  less than |  |
+| `>` |  greater than |  |
 | `+` `-` ` * ` `/` `%` | add,sub,mult,div,mod |  |
 | `W` |  swap |  |
 | `O` |  rangeP | range using a pair off the stack |
@@ -187,7 +197,7 @@ see div.candy in this distribution
 | `P` |  prod |  |
 | `o` |  sort stack | _o_rdering |
 | `F` |  find |  search stack, return 0 or 1 (unimplemente) |
-| `&` |  stackSz |  |
+| `&` |  stackSz | push size of stack onto stack |
 | `C` |  cart | cartesian product |
 | `I` |  zip |  zip lists (unimplemented) |
 | `a` |  stack0 |  |
@@ -202,5 +212,5 @@ see div.candy in this distribution
 | `)` |  endwhile |  |
 | ` ` |    noOp | includes space, tab and linefeed |
 | `flpqtuvw` | | future |
-| `BDEGHIJMNQRUV` | | future |
+| `BDEGHIJMNQUV` | | future |
 | `$^[]\:'<>,` | | future |
