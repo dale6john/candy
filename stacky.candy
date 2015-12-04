@@ -1,0 +1,304 @@
+# characters on stack
+
+# !  %  *  +  ,  -  /  0  1   .. 9  D  ^
+# 33 37 42 43 44 45 47 48 49     57 68 94
+
+# stack3 is application frame
+
+stackSz
+if
+else
+  "EmptyProgram!!!\n"
+  while printChr endwhile
+  retSub
+endif
+
+while
+  popA
+
+  stack2
+  pushY
+  pushZ
+  stack1
+
+  # evalute current instruction.  if opcode get param count
+
+  YGetsA
+
+#  "["
+#  printChr
+#  pushY
+#  printChr
+#  "]"
+#  printChr
+#  "\n"
+#  printChr
+
+  # X = 1 .. 10  for ! % ...
+  # X = 0 for digit
+
+  digit0 popA ZGetsA XGetsA
+
+  digit4 setSP
+  "!%*+,-/D^"
+  while
+    incrZ
+    pushY
+    equal
+    if
+      pushZ
+      popA
+      XGetsA
+    endif
+  endwhile
+  stack1
+
+#  "X="
+#  printChr printChr
+#  pushX
+#  println
+
+  # Y is used to flag we are in a digit
+  # Z is used to accumulate digit values
+
+  pushY      # current character
+  stack2
+  popA ZGetsA
+  popA YGetsA
+  stack1
+
+  popA
+  pushX
+  if
+    # operator like +,-,/, etc
+
+    pushY
+    if # need to push number to stack
+      stack3
+      pushZ
+      digit0 popA YGetsA ZGetsA
+      stack1
+    endif
+
+    # 123456789
+    # !%*+,-/D^
+    # 122202212
+    #digit0 popA ZGetsA
+    stack2
+    digit2 digit1 digit2 digit2
+    digit0 digit2 digit2 digit2 digit1
+    while
+      incrZ
+      popA
+      pushZ
+      pushX
+      equal
+      if
+        YGetsA
+      endif
+    endwhile
+    stack1
+
+    digit0 popA ZGetsA   # Z = 0
+
+#    "X="
+#    printChr printChr
+#    pushX println
+#    "Y="
+#    printChr printChr
+#    pushY println
+
+    stack3
+    pushY digit0 jumpSub  # validate entries
+    if
+      pushX jumpSub  # methods are allowed to burn A
+                     # must leave Y and Z at zero
+                     # setting Z raises error
+      pushZ
+      if
+      else
+        dupl
+        digit1
+        stack2
+        number digit6 digit4 range1
+        while
+          popA
+          stack3
+          digit2
+          mult
+        endwhile
+        stack3
+        greater
+        if
+          stack2
+          "NumberOverFlow"
+          while printChr endwhile
+          incrZ
+        endif
+      endif
+    else
+      # error
+      incrZ
+    endif
+    stack1
+
+    pushZ
+    if
+      while popA endwhile
+      "Exception!!!\n"
+      while printChr endwhile
+      retSub
+    endif
+
+    digit0 popA YGetsA ZGetsA
+
+  else
+    # is a digit
+    pushA number digit4 digit8 sub   # A - 0
+    pushZ number digit1 digit0 mult
+    add
+    popA ZGetsA
+    digit1 popA YGetsA       # Y = 1
+
+#    "Z="
+#    printChr printChr
+#    pushZ
+#    println
+
+#    "Y="
+#    printChr printChr
+#    pushY
+#    println
+
+  endif
+endwhile
+
+stack3
+println
+while popA endwhile
+retSub
+
+
+label digit0
+  # test stack for 'n' items
+  # peekA    # eg. 2     = 2  
+  stackSz  # eg. 2 + 1 = 3
+  less
+  if 
+    digit1
+  else
+    stack2
+    "StackUnderflow"
+    while printChr endwhile
+    stack3
+    digit0
+  endif
+retSub
+
+# 123456789
+# !%*+,-/D^
+# 122202212
+
+label digit1
+  # factorial
+  # frame 2 is scratch frame for range operator
+  peekA   # factorial operand
+  pushA
+  floor
+  equal
+  if
+    pushA
+    digit0
+    less
+    if
+      stack2
+      "Negative"
+      while printChr endwhile
+      incrZ
+    else
+      digit1  # push '1' to app stack
+      stack2
+      pushA range1
+      while
+        popA
+        stack3
+        pushA
+        mult
+      endwhile
+    endif
+  else
+    stack2
+    "Floating"
+    while printChr endwhile
+    incrZ
+  endif
+  pushZ
+  if
+    stack2
+    "Factorial"
+    while printChr endwhile
+  endif
+retSub
+
+label digit2
+  # %
+  swap
+  mod
+retSub
+
+label digit3
+  mult
+retSub
+
+label digit4
+  add
+#retSub
+
+label digit5
+  # no-op
+retSub
+
+label digit6
+  swap
+  sub
+retSub
+
+label digit7
+  swap
+  dupl
+  if
+    div
+  else
+    stack2
+    "DivisionByZero"
+    while printChr endwhile
+    incrZ
+  endif
+retSub
+
+label digit8
+  # dup
+  peekA
+  pushA
+retSub
+
+label digit9
+  # exponent
+  # frame 3 should be application frame
+  # frame 2 scratch frame for range operator
+  popA     # base
+  XGetsA   # X = base
+  getSP popA YGetsA  # stack frame
+  popA     # A = exponent
+
+  digit1   # push '1' to app stack
+  stack2
+  pushA range0
+  while
+    stack3
+    pushX
+    mult
+  endwhile
+retSub
+
+
