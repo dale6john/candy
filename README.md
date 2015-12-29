@@ -141,6 +141,8 @@ see div.candy in this distribution
 
 ## TODO
 
+- between operator
+- incr Y
 - zip
 - search stack
 - heap (?)
@@ -167,7 +169,8 @@ see div.candy in this distribution
 | `Y` |  pushY |  |
 | `Z` |  pushZ |  |
 | `0..9` |  digit0-9 |  |
-| `#` |  number |  used to generate numbers > 9 |
+| `N` |  digit 10 | |
+| `#` |  number |  used to declare numbers > 9 |
 | `x` |  XGetsA |  |
 | `y` |  YGetsA |  |
 | `z` |  ZGetsA |  |
@@ -188,7 +191,10 @@ see div.candy in this distribution
 | `e` |  equal |  |
 | `<` |  less than |  |
 | `>` |  greater than |  |
+| `w` |  between | 132w is true; inclusive |
 | `+` `-` ` * ` `/` `%` | add,sub,mult,div,mod |  |
+| `B` |  bin | convert to binary string |
+| `I` |  int | convert to integer string |
 | `W` |  swap |  |
 | `O` |  rangeP | range using a pair off the stack |
 | ` _ ` |  range0 | range starting at 0 |
@@ -200,7 +206,7 @@ see div.candy in this distribution
 | `F` |  find |  search stack, return 0 or 1 (unimplemente) |
 | `&` |  stackSz | push size of stack onto stack |
 | `C` |  cart | cartesian product |
-| `I` |  zip |  zip lists (unimplemented) |
+| ` ` |  zip |  zip lists (unimplemented) |
 | `a` |  stack0 |  |
 | `b` |  stack1 |  |
 | `c` |  stack2 |  |
@@ -212,6 +218,6 @@ see div.candy in this distribution
 | `(` |  while |  |
 | `)` |  endwhile |  |
 | ` ` |    noOp | includes space, tab and linefeed |
-| `flpqtuvw` | | future |
-| `BDEGHIJMNQUV` | | future |
-| `$^[]\:'<>,` | | future |
+| `flpqtuw` | | future |
+| `EGHJMQUV` | | future |
+| `$^[]\',` | | future |

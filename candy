@@ -54,6 +54,7 @@ my $loops = [];
 my $ifs = [];
 my $labels = {};
 my $labelsAt = {};
+my $literalAt = [];
 my $subStack = [];
 
 my ($A, $X, $Y, $Z) = (0,0,0,0);
@@ -81,6 +82,7 @@ my $operations = [
   [ "printChr", ";", sub { printf "%c", pop1() }],
   [ "getc", ":", sub { push1(ord(getc())) }],
   [ "peekA", "~", sub { $A=pop1(); push1($A) }],
+  [ "ord", chr(96), sub { push1($literalAt->[$pc]); } ],
   [ "popA",  "=", sub { $A=pop1() } ],
   [ "pushA", "A", sub { push1($A) } ],
   [ "pushX", "X", sub { push1($X) } ],
@@ -96,6 +98,7 @@ my $operations = [
   [ "digit7", "7", sub { push1(7) } ],
   [ "digit8", "8", sub { push1(8) } ],
   [ "digit9", "9", sub { push1(9) } ],
+  [ "digit10", "N", sub { push1(10) } ],
   [ "number", "#", sub {
     my $v = 0;
     my $op = $prog[$pc + ++$ops];
@@ -131,6 +134,7 @@ my $operations = [
   [ "incrZ",  "i", sub { $Z++ } ],
   [ "decrZ",  "d", sub { $Z-- } ],
   [ "popAddZ", "h", sub { $Z+=pop1() }],
+  [ "incrY",  "v", sub { $Y++ } ],
   [ "dupl",   "D", sub { my $t=pop1(); push1($t); push1($t) }],
   [ "negate", "m", sub { push1(-pop1()) }],
   [ "not",    "n", sub { push1(pop1() ? 0 : 1) }],
@@ -141,11 +145,19 @@ my $operations = [
   [ "equal",  "e", sub { push1((pop1()==pop1())?1:0) }],
   [ "less",   "<", sub { push1((pop1()>pop1())?1:0) }],
   [ "greater",">", sub { push1((pop1()<pop1())?1:0) }],
+  [ "between","w", sub { 
+    my $b=pop1(); 
+    my $a=pop1(); 
+    my $c=pop1();
+    push1($c >= $a && $c <= $b ? 1 : 0);
+  }],
   [ "add",  "+", sub { push1(pop1()+pop1()) }],
   [ "sub",  "-", sub { push1(-pop1()+pop1()) }],
   [ "mult",  "*", sub { push1(pop1()*pop1()) }],
   [ "div",  "/", sub { push1(1/pop1()*pop1()) }],
   [ "mod",  "%", sub { my $t=pop1(); push1(pop1() % $t) }],
+  [ "bin",  "B", sub { my $t=pop1(); for(reverse(split(//,sprintf("%b",$t)))) { push1($_)} }],
+  [ "int",  "I", sub { my $t=pop1(); for(reverse(split(//,sprintf("%d",$t)))) { push1($_)} }],
   [ "swap",  "W", sub { my $t=pop1(); my $t2=pop1(); push1($t); push1($t2) }],
   [ "rangeP",  "O", sub {
     my $t2=pop1();
@@ -376,6 +388,17 @@ if ($showLong) {
   exit(0);
 }
 
+# scan for literal characters ie. `a
+for my $ix (0 .. scalar(@prog) - 1) {
+  my $c = $prog[$ix];
+  if ($c eq "`") {
+    $literalAt->[ $ix ] = ord($prog[$ix + 1]);
+    $prog[$ix + 1] = " ";
+    #$labels->{ $num } = $pc + $ops;
+    #$labelsAt->{ $ix } = $ops || 1;
+  }
+}
+
 # scan for labels
 for my $ix (0 .. scalar(@prog) - 1) {
   my $c = $prog[$ix];
@@ -406,10 +429,13 @@ if ($input ne "") {
   for (split(/,/, $input)) {
     push1($_);
   }
-}
-if ($inputString ne "") {
+} elsif ($inputString ne "") {
   for (reverse(split//, $inputString)) {
     push1(ord($_));
+  }
+} else {
+  while (<STDIN>) {
+    push1($_);
   }
 }
 
@@ -439,7 +465,8 @@ while (1) {
   }
 
   eval {
-     $instructions->{$c}->[2]();
+    #print "c=$c\n";
+    $instructions->{$c}->[2]();
   };
   if ($@) {
      die "at '$c' $@ $!\n";
